@@ -5,10 +5,12 @@ unsigned char gps_buffer[1000] = "$GPRMC,000324.00,V,0000.0000,N,00000.0000,E,00
 int gps_hour, gps_min, gps_sec, gps_day, gps_month, gps_year;
 float latitude_coordinate, longitude_coordinate;
 
+//functions prototypes
 static void gpsParser();
 static void splitInfo(int i);
 static void provisoryString(int x, int k, int i, char* string);
 
+//main function that prints the results and the time it took to process all the GPS data
 void main()
 {
 	clock_t begin = clock();
@@ -19,38 +21,45 @@ void main()
 	printf("Longitude:%c,%f\n", longitude_compass, longitude_coordinate);
 	clock_t end = clock();
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	printf("Time spent: %.15f",time_spent);
+	printf("Time spent: %0.20f",time_spent);
 	getchar();
 }
 
 
+//function responsable for parsing the gps array received from the uC
 static void gpsParser()
 {
 	int i = 0, j = 0;
+	
+	//the label that needs to be found with the GPS info
 	char label[7] = "$GPRMC";
 	
 	char provisory[7];
 	memset(provisory, 0, sizeof provisory);
 
-	//xSemaphoreTake(binSemaphore, portMAX_DELAY);
-
+	//check all the positions of the buffer
 	for (i = 0; i<1000; i++)
 	{
+		//if where the label is found there isn't enough space for all the info, discard it
 		if (i + 75 < 1000)
 		{
+			//if the beginning of the label is found, the provisory string will take the other characters 
 			if (gps_buffer[i] == '$')
 			{
 				for (j = 0; j < 6; j++)
 				{
 					provisory[j] = gps_buffer[i + j];
 				}
+				//if the provisory string is the label to be found proceed
 				if (strcmp(provisory, label) == 0)
 				{
+					//if the character V is found in this position there is no info to be saved
 					i = i + 5;
 					if (gps_buffer[i + 12] == 'V')
 					{
 						continue;
 					}
+					//otherwise the function splitInfo is called
 					else
 					{
 						splitInfo(i);
@@ -64,6 +73,7 @@ static void gpsParser()
 	}
 }
 
+//splits the string and converts the strings to numeric values
 static void splitInfo(int i)
 {
 	int x = 0, k = 0;	
@@ -92,6 +102,7 @@ static void splitInfo(int i)
 	gps_year = atoi(provisory_time);
 }
 
+//creates a provisory string for each value to be found in there
 static void provisoryString(int x, int k, int i, char* string)
 {
 	for (int j = 0; j < k; j++)
